@@ -1,0 +1,253 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin Dashboard – CivicResolve</title>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="js/ui.js"></script>
+</head><body>
+<div id="loading-screen"><div class="brand">⚖️ CivicResolve</div><div class="ring"></div><p>Loading…</p></div>
+<canvas id="bg-canvas"></canvas><div id="toast"></div>
+<button id="help-btn" onclick="showToast('Admin: admin@civicresolve.gov')">?</button>
+
+<nav class="navbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="sidebar-toggle">☰</button>
+    <a href="admin-dashboard.html" class="nav-logo" data-no-tr>⚖️ CivicResolve</a>
+  </div>
+  <div class="nav-links">
+    <span id="nav-user" style="color:#6B5B8A;font-size:0.93rem;font-weight:600"></span>
+    <span style="padding:3px 10px;border-radius:4px;font-size:0.72rem;font-weight:700;background:#FEF3C7;color:#92400E;text-transform:uppercase;letter-spacing:0.08em">⚙️ Admin</span>
+    <a href="#" onclick="doLogout()" style="color:#DC2626;font-weight:700;font-size:0.93rem">Logout</a>
+  </div>
+</nav>
+<div id="sidebar-overlay"></div>
+<aside class="sidebar">
+  <div class="sidebar-header"><h2>⚖️ CivicResolve</h2><p id="sidebar-user">Admin Panel</p></div>
+  <div class="sidebar-section-label">ADMIN</div>
+  <nav class="sidebar-menu">
+    <a href="admin-dashboard.html" class="active">⚙️ Dashboard</a>
+    <a href="officer-dashboard.html">👮 Officer View</a>
+    <a href="transparency-dashboard.html">📊 Public Reports</a>
+    <div style="height:1px;background:rgba(196,181,253,0.2);margin:8px 16px"></div>
+    <a href="#" onclick="doLogout()" style="color:#DC2626">🚪 Logout</a>
+  </nav>
+</aside>
+
+<main class="page-content" style="padding-top:90px">
+  <div class="page-header">
+    <div><h1 id="welcome-title">Admin Dashboard</h1><p>Full platform oversight — Firestore live data</p></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-gold btn-sm" onclick="loadAll()">🔄 Refresh</button>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 Export CSV</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Total Complaints</div><div class="stat-value g-text" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Resolved</div><div class="stat-value" style="color:#059669" id="stat-resolved">—</div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Pending</div><div class="stat-value" style="color:#D97706" id="stat-pending">—</div></div>
+    <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-label">Registered Users</div><div class="stat-value" id="stat-users">—</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px">
+    <div class="glass" style="padding:22px"><h3 class="section-title">Complaints by Category</h3><div class="chart-box"><canvas id="cat-chart"></canvas></div></div>
+    <div class="glass" style="padding:22px"><h3 class="section-title">Status Breakdown</h3><div class="chart-box"><canvas id="status-chart"></canvas></div></div>
+  </div>
+
+  <div class="glass" style="padding:24px;margin-bottom:22px">
+    <h3 class="section-title">Registered Users</h3>
+    <div id="users-status" style="color:#9585B0;padding:10px">Loading users…</div>
+    <div class="table-wrap" id="users-wrap" style="display:none">
+      <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Registered</th><th>Complaints</th></tr></thead>
+      <tbody id="users-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <div class="glass" style="padding:24px">
+    <h3 class="section-title">All Complaints</h3>
+    <div id="complaints-status" style="color:#9585B0;padding:10px">Loading complaints…</div>
+    <div class="table-wrap" id="complaints-wrap" style="display:none">
+      <table><thead><tr><th>ID</th><th>Citizen</th><th>Title</th><th>Category</th><th>Dept</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody id="all-complaints-tbody"></tbody></table>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.06,transparent:true,opacity:.13})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
+
+<script type="module">
+import { logoutUser, getCurrentUser } from "./js/auth.js";
+import { getAllComplaints, getStatusBadge } from "./js/complaints.js";
+import { db, auth } from "./js/firebase.js";
+import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { animateCounter, fmtDate } from "./js/dashboard.js";
+
+window.doLogout = logoutUser;
+let _complaints = [], _catChart = null, _statusChart = null;
+
+// ── Wait for Firebase auth to resolve before doing anything ──────────────────
+function waitForUser() {
+  return new Promise((resolve) => {
+    const cached = getCurrentUser();
+    if (cached) { resolve(cached); return; }
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      unsub();
+      if (!firebaseUser) { resolve(null); return; }
+      try {
+        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (snap.exists()) {
+          const userData = snap.data();
+          sessionStorage.setItem("cr_user", JSON.stringify(userData));
+          resolve(userData);
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    });
+  });
+}
+
+(async () => {
+  const user = await waitForUser();
+
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+  if (user.role !== "admin") {
+    showToast("Admin access required.");
+    setTimeout(() => {
+      window.location.href = user.role === "officer"
+        ? "officer-dashboard.html"
+        : "citizen-dashboard.html";
+    }, 700);
+    return;
+  }
+
+  document.getElementById("nav-user").textContent     = "⚙️ " + user.name;
+  document.getElementById("sidebar-user").textContent  = user.name;
+  document.getElementById("welcome-title").textContent = "Admin: " + user.name.split(" ")[0];
+
+  await loadAll();
+})();
+
+// ── Load all data ─────────────────────────────────────────────────────────────
+window.loadAll = async function() {
+  // Reset status indicators
+  document.getElementById("complaints-status").style.display = "block";
+  document.getElementById("complaints-status").textContent   = "Loading complaints…";
+  document.getElementById("complaints-wrap").style.display   = "none";
+  document.getElementById("users-status").style.display      = "block";
+  document.getElementById("users-status").textContent        = "Loading users…";
+  document.getElementById("users-wrap").style.display        = "none";
+
+  try {
+    // ── Complaints ──────────────────────────────────────────────────────────
+    _complaints = await getAllComplaints();
+    const resolved = _complaints.filter(c => c.status === "Resolved").length;
+    const pending  = _complaints.filter(c => c.status !== "Resolved").length;
+
+    animateCounter(document.getElementById("stat-total"),    _complaints.length, 700);
+    animateCounter(document.getElementById("stat-resolved"), resolved, 700);
+    animateCounter(document.getElementById("stat-pending"),  pending,  700);
+
+    document.getElementById("complaints-status").style.display = "none";
+    document.getElementById("complaints-wrap").style.display   = "block";
+    document.getElementById("all-complaints-tbody").innerHTML = _complaints.map(c => `
+      <tr>
+        <td><code style="color:#6B21A8;font-size:0.8rem">${c.id}</code></td>
+        <td style="font-weight:600">${c.citizenName}</td>
+        <td>${c.title}</td>
+        <td>${c.category}</td>
+        <td style="font-size:0.88rem;color:#6B5B8A">${c.department}</td>
+        <td><span class="badge ${getStatusBadge(c.status)}">${c.status}</span></td>
+        <td style="color:#9585B0;font-size:0.88rem">${fmtDate(c.createdAt)}</td>
+      </tr>`).join("");
+
+    // ── Users ───────────────────────────────────────────────────────────────
+    const usersSnap = await getDocs(collection(db, "users"));
+    const users     = usersSnap.docs.map(d => d.data());
+    animateCounter(document.getElementById("stat-users"), users.length, 700);
+
+    if (!users.length) {
+      document.getElementById("users-status").textContent = "No registered users yet.";
+    } else {
+      document.getElementById("users-status").style.display = "none";
+      document.getElementById("users-wrap").style.display   = "block";
+      const roleStyle = {
+        citizen: "background:#EDE9FE;color:#6B21A8",
+        officer: "background:#ECFDF5;color:#059669",
+        admin:   "background:#FEF3C7;color:#92400E"
+      };
+      document.getElementById("users-tbody").innerHTML = users.map(u => {
+        const uc = _complaints.filter(c => c.citizenId === u.uid).length;
+        return `<tr>
+          <td style="font-weight:700;color:#1A0A2E">${u.name}</td>
+          <td style="color:#6B5B8A">${u.email}</td>
+          <td><span class="badge" style="${roleStyle[u.role] || ''}">${u.role?.toUpperCase()}</span></td>
+          <td style="color:#9585B0;font-size:0.88rem">${fmtDate(u.createdAt)}</td>
+          <td style="font-weight:700;color:#6B21A8">${uc}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    drawCharts(_complaints);
+
+  } catch (err) {
+    showToast("Error loading data: " + err.message);
+    document.getElementById("complaints-status").textContent = "Error: " + err.message;
+    document.getElementById("users-status").textContent      = "Error: " + err.message;
+    console.error(err);
+  }
+};
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+function drawCharts(data) {
+  const cats  = { Water:0, Electricity:0, Roads:0, Sanitation:0, "Public Safety":0, Transport:0 };
+  const stats = { Submitted:0, "Under Review":0, "In Progress":0, Resolved:0, Escalated:0 };
+  data.forEach(c => {
+    if (cats[c.category]  !== undefined) cats[c.category]++;
+    if (stats[c.status]   !== undefined) stats[c.status]++;
+  });
+
+  if (_catChart) _catChart.destroy();
+  _catChart = new Chart(document.getElementById("cat-chart").getContext("2d"), {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(cats),
+      datasets: [{ data: Object.values(cats), backgroundColor: ["#6B21A8","#D4A017","#4A0E8F","#059669","#8B3DC8","#C4B5FD"], borderWidth:2, borderColor:"rgba(255,255,255,0.8)" }]
+    },
+    options: { plugins: { legend: { position:"bottom", labels: { font:{ size:11 }, padding:12 } } }, cutout:"65%" }
+  });
+
+  if (_statusChart) _statusChart.destroy();
+  _statusChart = new Chart(document.getElementById("status-chart").getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: Object.keys(stats),
+      datasets: [{ data: Object.values(stats), backgroundColor: ["#6B21A8","#D97706","#D4A017","#059669","#DC2626"], borderRadius:6, borderSkipped:false }]
+    },
+    options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero:true, grid:{ color:"rgba(196,181,253,0.15)" } }, x: { grid:{ display:false } } } }
+  });
+}
+
+// ── Export CSV (fix: location fallback) ──────────────────────────────────────
+window.exportCSV = function() {
+  const rows = [["ID","Citizen","Email","Title","Category","Department","Status","Date","Location"]];
+  _complaints.forEach(c => rows.push([
+    c.id, c.citizenName, c.citizenEmail || "", c.title,
+    c.category, c.department, c.status, fmtDate(c.createdAt),
+    c.location || ""   // FIX: was c.location which could be undefined → "undefined" in CSV
+  ]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a   = document.createElement("a");
+  a.href     = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = "civicresolve-export.csv";
+  a.click();
+};
+</script>
+</body></html>
