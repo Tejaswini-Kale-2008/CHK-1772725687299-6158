@@ -7,27 +7,37 @@
 <div id="loading-screen"><div class="brand">⚖️ CivicResolve</div><div class="ring"></div><p>Loading…</p></div>
 <canvas id="bg-canvas"></canvas><div id="toast"></div>
 <button id="help-btn" onclick="showToast('Help: help@civicresolve.gov')">?</button>
-
 <nav class="navbar">
   <div style="display:flex;align-items:center;gap:12px">
     <button id="sidebar-toggle">☰</button>
     <a href="index.html" class="nav-logo">⚖️ CivicResolve</a>
   </div>
-  <div class="nav-links" id="nav-links">
-    <!-- Populated by JS based on login state -->
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="submit-complaint.html">Submit</a>
+    <a href="track-complaint.html">Track</a>
+    <a href="transparency-dashboard.html">Transparency</a>
+    <a href="login.html" class="btn btn-blue btn-sm" style="color:#fff" id="nav-cta">Login</a>
   </div>
 </nav>
-
 <div id="sidebar-overlay"></div>
 <aside class="sidebar">
-  <div class="sidebar-header"><h2>⚖️ CivicResolve</h2><p id="sidebar-user">Portal</p></div>
+  <div class="sidebar-header">
+    <h2>⚖️ CivicResolve</h2>
+    <p>Citizen Portal</p>
+  </div>
   <div class="sidebar-section-label">NAVIGATION</div>
-  <nav class="sidebar-menu" id="sidebar-menu">
-    <!-- Populated by JS based on login state -->
+  <nav class="sidebar-menu">
+    <a href="index.html">🏠 Home</a>
+    <a href="submit-complaint.html">📝 Submit Complaint</a>
+    <a href="track-complaint.html" class="active">🔍 Track Complaint</a>
+    <a href="transparency-dashboard.html">📊 Public Reports</a>
+    <div style="height:1px;background:rgba(196,181,253,0.2);margin:8px 16px"></div>
+    <a href="login.html">🔐 Login</a>
   </nav>
 </aside>
-
 <main style="position:relative;z-index:1;padding:100px 40px 60px;max-width:800px;margin:0 auto">
+  <a href="transparency-dashboard.html" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:24px;padding:9px 20px;border-radius:9px;background:rgba(255,255,255,0.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:2px solid rgba(107,33,168,0.4);color:#6B21A8;font-family:'Source Sans 3',sans-serif;font-size:0.9rem;font-weight:700;text-decoration:none;letter-spacing:0.02em;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),background 0.2s" onmouseover="this.style.transform='translateY(-3px) scale(1.02)';this.style.background='#F3EEFF'" onmouseout="this.style.transform='';this.style.background='rgba(255,255,255,0.55)'">← Back</a>
   <h1 style="font-family:'Merriweather',serif;font-size:2rem;font-weight:900;color:#1A0A2E;margin-bottom:6px">Track Complaint</h1>
   <p style="color:#6B5B8A;margin-bottom:32px">Enter your Complaint ID to view real-time status from Firestore</p>
   <div class="glass" style="padding:28px;margin-bottom:28px">
@@ -38,65 +48,25 @@
   </div>
   <div id="result-area"></div>
 </main>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.065,transparent:true,opacity:.15})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
-
+<script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(500);for(var i=0;i<500;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.065,transparent:true,opacity:.15})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
 <script type="module">
-import { getCurrentUser, logoutUser } from "./js/auth.js";
+import { getCurrentUser } from "./js/auth.js";
 import { getComplaintById, getStatusBadge } from "./js/complaints.js";
 import { fmtDate } from "./js/dashboard.js";
 
-// ── Build nav based on login state ──────────────────────────────────────────
 const user = getCurrentUser();
-const navLinks   = document.getElementById("nav-links");
-const sidebarMenu = document.getElementById("sidebar-menu");
-
 if (user) {
-  // Logged-in nav
-  const dashHref = user.role === "admin"
-    ? "admin-dashboard.html"
-    : user.role === "officer"
-    ? "officer-dashboard.html"
-    : "citizen-dashboard.html";
-
-  navLinks.innerHTML = `
-    <a href="index.html">Home</a>
-    <a href="submit-complaint.html">Submit</a>
-    <a href="track-complaint.html">Track</a>
-    <a href="${dashHref}" class="btn btn-blue btn-sm" style="color:#fff">👤 ${user.name.split(" ")[0]}</a>
-    <a href="#" onclick="window.doLogout()" style="color:#DC2626;font-weight:700;font-size:0.93rem">Logout</a>
-  `;
-
-  document.getElementById("sidebar-user").textContent = user.name;
-  sidebarMenu.innerHTML = `
-    <a href="${dashHref}">🏠 Dashboard</a>
-    <a href="submit-complaint.html">📝 Submit Complaint</a>
-    <a href="track-complaint.html" class="active">🔍 Track Complaint</a>
-    <a href="transparency-dashboard.html">📊 Public Reports</a>
-    <div style="height:1px;background:rgba(196,181,253,0.2);margin:8px 16px"></div>
-    <a href="#" onclick="window.doLogout()" style="color:#DC2626">🚪 Logout</a>
-  `;
-} else {
-  // Logged-out nav
-  navLinks.innerHTML = `
-    <a href="index.html">Home</a>
-    <a href="submit-complaint.html">Submit</a>
-    <a href="track-complaint.html">Track</a>
-    <a href="login.html" class="btn btn-blue btn-sm" style="color:#fff">Login</a>
-  `;
-  sidebarMenu.innerHTML = `
-    <a href="index.html">🏠 Home</a>
-    <a href="submit-complaint.html">📝 Submit</a>
-    <a href="track-complaint.html" class="active">🔍 Track</a>
-    <a href="transparency-dashboard.html">📊 Reports</a>
-    <a href="login.html">🔐 Login</a>
-  `;
+  const btn = document.getElementById("nav-cta");
+  btn.textContent = "👤 " + user.name.split(" ")[0];
+  btn.href = user.role==="admin"?"admin-dashboard.html":user.role==="officer"?"officer-dashboard.html":"citizen-dashboard.html";
 }
 
-window.doLogout = logoutUser;
+const params = new URLSearchParams(window.location.search);
+const urlId = params.get("id");
+if (urlId) { document.getElementById("track-id").value = urlId.toUpperCase(); doTrack(); }
+document.getElementById("track-id").addEventListener("keydown", e => { if(e.key==="Enter") doTrack(); });
 
-// ── Track function — defined before URL param check below ────────────────────
 window.doTrack = async function() {
   const id = document.getElementById("track-id").value.trim().toUpperCase();
   if (!id) { showToast("Please enter a Complaint ID"); return; }
@@ -105,70 +75,35 @@ window.doTrack = async function() {
   try {
     const c = await getComplaintById(id);
     if (!c) {
-      area.innerHTML = `<div class="glass" style="padding:30px;text-align:center">
-        <div style="font-size:2.5rem;margin-bottom:14px">🔍</div>
-        <h3 style="font-family:'Merriweather',serif;color:#1A0A2E;margin-bottom:8px">Not Found</h3>
-        <p style="color:#6B5B8A">No complaint with ID <strong>${id}</strong>. Check the ID and try again.</p>
-      </div>`;
+      area.innerHTML=`<div class="glass" style="padding:30px;text-align:center"><div style="font-size:2.5rem;margin-bottom:14px">🔍</div><h3 style="font-family:'Merriweather',serif;color:#1A0A2E;margin-bottom:8px">Not Found</h3><p style="color:#6B5B8A">No complaint with ID <strong>${id}</strong>. Check the ID and try again.</p></div>`;
       return;
     }
-
-    const steps = ["Submitted", "Under Review", "Assigned", "In Progress", "Resolved"];
-    const si    = steps.indexOf(c.status);
-    let stepsHtml = '<div class="steps">';
-    steps.forEach((s, i) => {
-      const cls = i < si ? "done" : i === si ? "active" : "";
-      stepsHtml += `<div class="step ${cls}"><div class="step-dot">${i < si ? "✓" : i + 1}</div><div class="step-name">${s}</div></div>`;
-    });
-    stepsHtml += "</div>";
-
-    const commentsHtml = c.comments?.length
-      ? `<div style="margin-top:18px">
-           <h4 style="font-weight:700;color:#1A0A2E;margin-bottom:12px">Official Updates</h4>
-           ${c.comments.map(cm => `
-             <div style="padding:12px 16px;background:rgba(107,33,168,0.06);border-left:3px solid #6B21A8;border-radius:0 8px 8px 0;margin-bottom:8px">
-               <p style="color:#2D1B4E;font-size:0.94rem">${cm.text}</p>
-               <p style="color:#9585B0;font-size:0.8rem;margin-top:4px">${cm.date}</p>
-             </div>`).join("")}
-         </div>`
-      : "";
-
-    area.innerHTML = `<div class="glass" style="padding:28px">
+    const steps=["Submitted","Under Review","Assigned","In Progress","Resolved"];
+    const si = steps.indexOf(c.status);
+    let stepsHtml='<div class="steps">';
+    steps.forEach((s,i)=>{const cls=i<si?"done":i===si?"active":"";stepsHtml+=`<div class="step ${cls}"><div class="step-dot">${i<si?"✓":i+1}</div><div class="step-name">${s}</div></div>`;});
+    stepsHtml+="</div>";
+    const commentsHtml=c.comments?.length?`<div style="margin-top:18px"><h4 style="font-weight:700;color:#1A0A2E;margin-bottom:12px">Official Updates</h4>${c.comments.map(cm=>`<div style="padding:12px 16px;background:rgba(107,33,168,0.06);border-left:3px solid #6B21A8;border-radius:0 8px 8px 0;margin-bottom:8px"><p style="color:#2D1B4E;font-size:0.94rem">${cm.text}</p><p style="color:#9585B0;font-size:0.8rem;margin-top:4px">${cm.date}</p></div>`).join("")}</div>`:"";
+    area.innerHTML=`<div class="glass" style="padding:28px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:22px">
-        <div>
-          <div style="font-size:0.75rem;color:#9585B0;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:4px">Complaint ID</div>
-          <div style="font-family:monospace;font-size:1.4rem;font-weight:900;color:#6B21A8">${c.id}</div>
-        </div>
+        <div><div style="font-size:0.75rem;color:#9585B0;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:4px">Complaint ID</div><div style="font-family:monospace;font-size:1.4rem;font-weight:900;color:#6B21A8">${c.id}</div></div>
         <span class="badge ${getStatusBadge(c.status)}" style="font-size:0.88rem;padding:6px 16px">${c.status}</span>
       </div>
       <h2 style="font-family:'Merriweather',serif;font-size:1.3rem;font-weight:900;color:#1A0A2E;margin-bottom:16px">${c.title}</h2>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px">
         <div><div style="font-size:0.77rem;color:#9585B0;text-transform:uppercase;font-weight:700;margin-bottom:4px">Category</div><div style="color:#2D1B4E;font-weight:600">${c.category}</div></div>
         <div><div style="font-size:0.77rem;color:#9585B0;text-transform:uppercase;font-weight:700;margin-bottom:4px">Department</div><div style="color:#2D1B4E;font-weight:600">${c.department}</div></div>
-        <div><div style="font-size:0.77rem;color:#9585B0;text-transform:uppercase;font-weight:700;margin-bottom:4px">Location</div><div style="color:#2D1B4E;font-weight:600">${c.location || "—"}</div></div>
+        <div><div style="font-size:0.77rem;color:#9585B0;text-transform:uppercase;font-weight:700;margin-bottom:4px">Location</div><div style="color:#2D1B4E;font-weight:600">${c.location}</div></div>
         <div><div style="font-size:0.77rem;color:#9585B0;text-transform:uppercase;font-weight:700;margin-bottom:4px">Filed</div><div style="color:#2D1B4E;font-weight:600">${fmtDate(c.createdAt)}</div></div>
       </div>
-      <div style="background:rgba(107,33,168,0.05);border-radius:8px;padding:14px;margin-bottom:22px">
-        <div style="font-size:0.77rem;color:#9585B0;text-transform:uppercase;font-weight:700;margin-bottom:6px">Description</div>
-        <p style="color:#2D1B4E;line-height:1.65;font-size:0.95rem">${c.description}</p>
-      </div>
+      <div style="background:rgba(107,33,168,0.05);border-radius:8px;padding:14px;margin-bottom:22px"><div style="font-size:0.77rem;color:#9585B0;text-transform:uppercase;font-weight:700;margin-bottom:6px">Description</div><p style="color:#2D1B4E;line-height:1.65;font-size:0.95rem">${c.description}</p></div>
       <h4 style="font-weight:700;color:#1A0A2E;margin-bottom:12px">Progress</h4>
       ${stepsHtml}${commentsHtml}
     </div>`;
-  } catch (err) {
-    area.innerHTML = `<div class="glass" style="padding:24px;text-align:center;color:#DC2626">Error: ${err.message}</div>`;
+  } catch(err) {
+    area.innerHTML=`<div class="glass" style="padding:24px;text-align:center;color:#DC2626">Error: ${err.message}</div>`;
     console.error(err);
   }
 };
-
-// ── Auto-search if ID in URL — safe because doTrack is already defined above ──
-document.getElementById("track-id").addEventListener("keydown", e => { if (e.key === "Enter") doTrack(); });
-
-const params = new URLSearchParams(window.location.search);
-const urlId  = params.get("id");
-if (urlId) {
-  document.getElementById("track-id").value = urlId.toUpperCase();
-  doTrack();
-}
 </script>
 </body></html>
