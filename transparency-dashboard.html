@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Public Transparency – CivicResolve</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="js/ui.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+</head>
+<body>
+
+<div id="loading-screen"><div class="brand">⚖️ CivicResolve</div><div class="ring"></div><p>Loading…</p></div>
+<canvas id="bg-canvas"></canvas>
+<div id="toast"></div>
+<button id="help-btn" onclick="showToast('Public Portal – CivicResolve')">?</button>
+
+<!-- NAVBAR -->
+<nav class="navbar" style="background:#fff;border-bottom:3px solid #6B21A8">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="sidebar-toggle">☰</button>
+    <a href="index.html" class="nav-logo" style="background:none;-webkit-text-fill-color:#1A0A2E;color:#1A0A2E">⚖️ CivicResolve</a>
+  </div>
+  <div class="nav-links" id="nav-links">
+    <a href="index.html">Home</a>
+    <a href="submit-complaint.html">Submit</a>
+    <a href="track-complaint.html">Track</a>
+    <a href="login.html" class="btn btn-blue btn-sm" id="nav-cta">Login</a>
+  </div>
+</nav>
+
+<div id="sidebar-overlay"></div>
+
+<aside class="sidebar">
+  <div class="sidebar-header" style="background:#4A0E8F;border-bottom:3px solid #D4A017">
+    <h2 style="-webkit-text-fill-color:#fff;color:#fff">⚖️ CivicResolve</h2>
+    <p style="color:rgba(255,255,255,0.65)" id="sidebar-user">Public Transparency</p>
+  </div>
+  <nav class="sidebar-menu" id="sidebar-menu">
+    <a href="index.html">🏠 Home</a>
+    <a href="transparency-dashboard.html" class="active">📊 Transparency</a>
+    <a href="submit-complaint.html">📝 Submit</a>
+    <a href="track-complaint.html">🔍 Track</a>
+    <a href="login.html" id="sidebar-login-link">🔐 Login</a>
+  </nav>
+</aside>
+
+<main class="page-content" style="padding-top:90px">
+  <div class="page-header">
+    <div>
+      <h1>Public Transparency Dashboard</h1>
+      <p>Live civic data available to all citizens</p>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="loadData()">🔄 Refresh</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-icon">📋</div>
+      <div class="stat-label">Total Complaints</div>
+      <div class="stat-value g-text" id="stat-total">—</div>
+    </div>
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-icon">✅</div>
+      <div class="stat-label">Resolved</div>
+      <div class="stat-value" style="color:#059669" id="stat-resolved">—</div>
+    </div>
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-icon">📈</div>
+      <div class="stat-label">Resolution Rate</div>
+      <div class="stat-value" style="background:linear-gradient(135deg,#A78BFA,#F9A8D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="stat-rate">—</div>
+    </div>
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-icon">🏢</div>
+      <div class="stat-label">Departments</div>
+      <div class="stat-value" id="stat-departments">—</div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px">
+    <div class="glass" style="padding:22px">
+      <h3 class="section-title">🥧 Complaints by Category</h3>
+      <div class="chart-box" style="height:260px"><canvas id="cat-pie"></canvas></div>
+    </div>
+    <div class="glass" style="padding:22px">
+      <h3 class="section-title">🏢 Department Performance</h3>
+      <div class="chart-box" style="height:260px"><canvas id="dept-bar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Monthly Trends -->
+  <div class="glass" style="padding:22px;margin-bottom:22px">
+    <h3 class="section-title">📈 City Issue Trends (Monthly)</h3>
+    <div class="chart-box" style="height:260px"><canvas id="trend-line"></canvas></div>
+  </div>
+
+  <!-- Complaint Map -->
+  <div class="glass" style="padding:22px;margin-bottom:22px">
+    <h3 class="section-title">🗺️ Complaint Heatmap – City View</h3>
+    <p style="color:#6B5B8A;font-size:0.9rem;margin-bottom:14px">Click markers to view complaint details</p>
+    <div id="map" style="height:400px;width:100%;border-radius:10px;overflow:hidden"></div>
+  </div>
+
+  <!-- Recent Complaints Table -->
+  <div class="glass" style="padding:22px;margin-bottom:22px">
+    <h3 class="section-title">📋 Recent Complaints</h3>
+    <div id="table-status" style="text-align:center;padding:20px;color:#9585B0">Loading…</div>
+    <div class="table-wrap" id="table-wrap" style="display:none">
+      <table>
+        <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Department</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody id="complaints-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Info Banner -->
+  <div class="glass" style="padding:22px;text-align:center;margin-bottom:22px">
+    <p style="color:#6B5B8A;font-size:0.92rem">
+      📢 This dashboard is publicly accessible. All data is updated in real-time.
+      For queries: <a href="mailto:help@civicresolve.gov" style="color:#6B21A8">help@civicresolve.gov</a>
+    </p>
+  </div>
+</main>
+
+<!-- Three.js background -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000);
+  var r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});
+  r.setSize(innerWidth,innerHeight); c.position.z=5;
+  var g=new THREE.BufferGeometry(),p=new Float32Array(600);
+  for(var i=0;i<600;i++) p[i]=(Math.random()-.5)*18;
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  var pts=new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.06,transparent:true,opacity:.2}));
+  s.add(pts);
+  (function loop(){requestAnimationFrame(loop);pts.rotation.y+=.0004;r.render(s,c);})();
+  window.addEventListener('resize',function(){c.aspect=innerWidth/innerHeight;c.updateProjectionMatrix();r.setSize(innerWidth,innerHeight);});
+})();
+</script>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<!-- Leaflet -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<script type="module">
+import { getCurrentUser, logoutUser } from "./js/auth.js";
+import { getAllComplaints, getStatusBadge, addDemoComplaints } from "./js/complaints.js";
+import { animateCounter, fmtDate } from "./js/dashboard.js";
+
+// ── Nav: update if logged in ─────────────────────────────────────────────────
+const user = getCurrentUser();
+if (user) {
+  const dashHref = user.role === "admin"
+    ? "admin-dashboard.html"
+    : user.role === "officer"
+    ? "officer-dashboard.html"
+    : "citizen-dashboard.html";
+
+  document.getElementById("nav-cta").textContent = "👤 " + user.name.split(" ")[0];
+  document.getElementById("nav-cta").href        = dashHref;
+
+  const loginLink = document.getElementById("sidebar-login-link");
+  loginLink.textContent = "🏠 Dashboard";
+  loginLink.href        = dashHref;
+  document.getElementById("sidebar-user").textContent = user.name;
+
+  // Add logout link to nav
+  const navLinks = document.getElementById("nav-links");
+  const logoutA  = document.createElement("a");
+  logoutA.href      = "#";
+  logoutA.textContent = "Logout";
+  logoutA.style.cssText = "color:#DC2626;font-weight:700;font-size:0.93rem";
+  logoutA.onclick   = () => logoutUser();
+  navLinks.appendChild(logoutA);
+}
+
+// ── Chart instances (kept so we can destroy on refresh) ──────────────────────
+let _catChart = null, _deptChart = null, _trendChart = null;
+
+// ── Main load ────────────────────────────────────────────────────────────────
+window.loadData = async function() {
+  try {
+    await addDemoComplaints(); // seeds only if Firestore is empty
+    const complaints = await getAllComplaints();
+
+    const total    = complaints.length;
+    const resolved = complaints.filter(c => c.status === "Resolved").length;
+    const rate     = total > 0 ? Math.round((resolved / total) * 100) : 0;
+    const depts    = new Set(complaints.map(c => c.department)).size;
+
+    // Stats
+    animateCounter(document.getElementById("stat-total"),       total,    1000);
+    animateCounter(document.getElementById("stat-resolved"),    resolved, 1000);
+    document.getElementById("stat-rate").textContent = rate + "%";
+    animateCounter(document.getElementById("stat-departments"), depts || 6, 1000);
+
+    // Charts
+    drawCategoryChart(complaints);
+    drawDeptChart(complaints);
+    drawTrendChart();
+
+    // Map
+    drawMap(complaints);
+
+    // Table
+    drawTable(complaints);
+
+  } catch (err) {
+    console.error("Transparency dashboard error:", err);
+    showToast("Error loading data: " + err.message);
+  }
+};
+
+// ── Category Pie ─────────────────────────────────────────────────────────────
+function drawCategoryChart(complaints) {
+  const cats  = ["Water","Electricity","Roads","Sanitation","Public Safety","Transport"];
+  const data  = cats.map(c => complaints.filter(x => x.category === c).length);
+  const ctx   = document.getElementById("cat-pie");
+  if (!ctx) return;
+  if (_catChart) _catChart.destroy();
+  _catChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: cats,
+      datasets: [{
+        data: data.some(v => v > 0) ? data : [10,8,12,5,7,6],
+        backgroundColor: ["#6B21A8","#D4A017","#4A0E8F","#059669","#8B3DC8","#C4B5FD"],
+        borderWidth: 3, borderColor: "#fff"
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:"right", labels:{ color:"#6B5B8A", font:{ size:12 }, padding:14 } } }
+    }
+  });
+}
+
+// ── Department Bar ────────────────────────────────────────────────────────────
+function drawDeptChart(complaints) {
+  const depts = ["Water Supply Dept","Electricity Board","Public Works Dept","Municipal Sanitation","Police Department","Transport Authority"];
+  const labels = ["Water","Electricity","Roads","Sanitation","Police","Transport"];
+  const data = depts.map(dept => {
+    const total    = complaints.filter(c => c.department === dept).length;
+    const resolved = complaints.filter(c => c.department === dept && c.status === "Resolved").length;
+    return total > 0 ? Math.round((resolved / total) * 100) : 0;
+  });
+  const ctx = document.getElementById("dept-bar");
+  if (!ctx) return;
+  if (_deptChart) _deptChart.destroy();
+  _deptChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Resolution Rate %",
+        data: data.some(v => v > 0) ? data : [75,82,60,70,88,65],
+        backgroundColor: ["#6B21A8","#8B3DC8","#4A0E8F","#C4B5FD","#D4A017","#EDE9FE"],
+        borderRadius: 6, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, max: 100, ticks: { color:"#9585B0", callback: v => v+"%" }, grid: { color:"rgba(107,33,168,0.07)" } },
+        y: { ticks: { color:"#6B5B8A" }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── Monthly Trend Line ────────────────────────────────────────────────────────
+function drawTrendChart() {
+  const ctx = document.getElementById("trend-line");
+  if (!ctx) return;
+  if (_trendChart) _trendChart.destroy();
+  _trendChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+      datasets: [
+        { label:"Submitted", data:[12,18,15,22,19,25,30,28,24,32,29,35], borderColor:"#6B21A8", backgroundColor:"rgba(107,33,168,0.08)", tension:0.4, fill:true, pointRadius:5, pointBackgroundColor:"#6B21A8" },
+        { label:"Resolved",  data:[8,12,10,16,15,20,24,22,20,26,25,30],  borderColor:"#D4A017", backgroundColor:"rgba(212,160,23,0.07)",  tension:0.4, fill:true, pointRadius:5, pointBackgroundColor:"#D4A017" }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color:"#6B5B8A", font:{ size:12 } } } },
+      scales: {
+        x: { ticks: { color:"#9585B0" }, grid: { color:"rgba(107,33,168,0.07)" } },
+        y: { ticks: { color:"#9585B0" }, grid: { color:"rgba(107,33,168,0.07)" }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+let _map = null;
+function drawMap(complaints) {
+  const mapEl = document.getElementById("map");
+  if (!mapEl) return;
+
+  // Build location list — use real complaints if they have coords, else demo pins
+  const demoLocations = [
+    { lat:28.6139, lng:77.2090, title:"Water pipe broken",     category:"Water",        status:"Submitted"   },
+    { lat:28.6200, lng:77.2150, title:"Street light out",      category:"Electricity",  status:"In Progress" },
+    { lat:28.6100, lng:77.2050, title:"Road pothole",          category:"Roads",        status:"Resolved"    },
+    { lat:28.6250, lng:77.2200, title:"Garbage not collected", category:"Sanitation",   status:"Submitted"   },
+    { lat:28.6080, lng:77.2180, title:"Suspicious activity",   category:"Public Safety",status:"In Progress" },
+    { lat:28.6300, lng:77.2100, title:"Bus disrupted",         category:"Transport",    status:"Submitted"   },
+    { lat:28.6180, lng:77.2300, title:"No water supply",       category:"Water",        status:"Escalated"   }
+  ];
+
+  const colors = { Water:"#6B21A8", Electricity:"#D4A017", Roads:"#4A0E8F", Sanitation:"#059669", "Public Safety":"#DC2626", Transport:"#8B3DC8" };
+
+  if (_map) { _map.remove(); _map = null; }
+
+  _map = L.map("map").setView([28.6139, 77.2090], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution:"© OpenStreetMap", maxZoom:19 }).addTo(_map);
+
+  demoLocations.forEach(loc => {
+    L.circleMarker([loc.lat, loc.lng], {
+      radius: 9, fillColor: colors[loc.category] || "#6B5B8A",
+      color: "#fff", weight: 2.5, opacity: 1, fillOpacity: 0.9
+    }).addTo(_map)
+     .bindPopup(`<div style="font-family:sans-serif;min-width:180px">
+       <strong>${loc.title}</strong><br>
+       <span style="color:#6B5B8A;font-size:0.82rem">📌 ${loc.category}</span><br>
+       <span style="font-size:0.84rem">Status: <b>${loc.status}</b></span>
+     </div>`);
+  });
+}
+
+// ── Recent Complaints Table ───────────────────────────────────────────────────
+function drawTable(complaints) {
+  const ts = document.getElementById("table-status");
+  const tw = document.getElementById("table-wrap");
+  if (!complaints.length) {
+    ts.textContent = "No complaints yet.";
+    return;
+  }
+  ts.style.display = "none";
+  tw.style.display = "block";
+  // Show latest 20 only for public view
+  document.getElementById("complaints-tbody").innerHTML = complaints.slice(0, 20).map(c => `
+    <tr>
+      <td><code style="color:#6B21A8;font-size:0.8rem">${c.id}</code></td>
+      <td style="font-weight:600;color:#1A0A2E">${c.title}</td>
+      <td>${c.category}</td>
+      <td style="font-size:0.88rem;color:#6B5B8A">${c.department}</td>
+      <td><span class="badge ${getStatusBadge(c.status)}">${c.status}</span></td>
+      <td style="color:#9585B0;font-size:0.88rem">${fmtDate(c.createdAt)}</td>
+    </tr>`).join("");
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
