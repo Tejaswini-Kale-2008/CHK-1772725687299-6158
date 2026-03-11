@@ -229,8 +229,8 @@ After login, the user profile is cached in `sessionStorage` for fast UI access (
 
 ---
 members: 
-Tejswini Kale
-Suhani Kaldate
-Divya Kamble
-Priyadarshani Pathrut
+. Tejswini Kale
+. Suhani Kaldate
+. Divya Kamble
+. Priyadarshani Pathrut
 *Built with Firebase v10, Glassmorphism CSS, Three.js, Chart.js, Leaflet.js*
