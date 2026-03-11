@@ -228,5 +228,9 @@ After login, the user profile is cached in `sessionStorage` for fast UI access (
 - Firebase Auth: [https://firebase.google.com/docs/auth/web/start](https://firebase.google.com/docs/auth/web/start)
 
 ---
-
+members: 
+Tejswini Kale
+Suhani Kaldate
+Divya Kamble
+Priyadarshani Pathrut
 *Built with Firebase v10, Glassmorphism CSS, Three.js, Chart.js, Leaflet.js*
