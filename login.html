@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Login – CivicResolve</title>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="js/ui.js"></script>
+</head><body>
+<div id="loading-screen"><div class="brand">⚖️ CivicResolve</div><div class="ring"></div><p>Loading…</p></div>
+<canvas id="bg-canvas"></canvas><div id="toast"></div>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 16px;position:relative;z-index:1">
+  <a href="index.html" class="nav-logo" style="margin-bottom:10px;font-size:1.35rem;text-decoration:none">⚖️ CivicResolve <span class="logo-badge">GOV</span></a>
+  <p style="color:#9585B0;font-size:0.85rem;margin-bottom:30px">Secure Government Portal</p>
+
+  <!-- Role Tabs -->
+  <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:2px solid rgba(107,33,168,0.25);margin-bottom:28px;background:rgba(255,255,255,0.6);backdrop-filter:blur(12px)">
+    <button id="tab-citizen" onclick="setRole('citizen')" style="padding:11px 28px;font-size:0.93rem;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg,#6B21A8,#8B3DC8);color:#fff;transition:all 0.2s">👤 Citizen</button>
+    <button id="tab-officer" onclick="setRole('officer')" style="padding:11px 28px;font-size:0.93rem;font-weight:700;border:none;cursor:pointer;background:transparent;color:#6B5B8A;transition:all 0.2s">👮 Officer</button>
+    <button id="tab-admin"   onclick="setRole('admin')"   style="padding:11px 28px;font-size:0.93rem;font-weight:700;border:none;cursor:pointer;background:transparent;color:#6B5B8A;transition:all 0.2s">⚙️ Admin</button>
+  </div>
+
+  <div class="glass" style="padding:38px;width:100%;max-width:400px;border-top:4px solid #6B21A8">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span id="role-icon" style="font-size:1.6rem">👤</span>
+      <h2 id="role-heading" style="font-family:'Merriweather',serif;font-size:1.45rem;font-weight:900;color:#1A0A2E">Citizen Login</h2>
+    </div>
+    <p id="role-desc" style="color:#6B5B8A;font-size:0.9rem;margin-bottom:28px;padding-left:38px">Submit and track your civic complaints</p>
+
+    <div class="form-group"><label class="form-label">Email Address</label>
+      <input type="email" id="login-email" class="form-input" placeholder="you@example.com"/></div>
+    <div class="form-group"><label class="form-label">Password</label>
+      <input type="password" id="login-pass" class="form-input" placeholder="Your password"/></div>
+
+    <button id="login-btn" class="btn btn-blue" style="width:100%;justify-content:center;margin-top:4px" onclick="doLogin()">🔐 Sign In as Citizen</button>
+
+    <div id="role-hint" class="info-box" style="margin-top:18px;font-size:0.86rem">
+      👤 <strong>Citizen:</strong> Submit complaints, track status, view history
+    </div>
+    <div style="margin-top:18px;text-align:center;font-size:0.91rem;color:#6B5B8A">
+      No account? <a href="register.html" style="color:#6B21A8;font-weight:700">Register here</a>
+    </div>
+  </div>
+  <p style="margin-top:24px;color:#9585B0;font-size:0.82rem">© 2024 CivicResolve Government Platform</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>/* particles */
+(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));var pts=new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.065,transparent:true,opacity:.18}));s.add(pts);(function l(){requestAnimationFrame(l);pts.rotation.y+=.0005;r.render(s,c);})();window.addEventListener('resize',function(){c.aspect=innerWidth/innerHeight;c.updateProjectionMatrix();r.setSize(innerWidth,innerHeight);});})();
+</script>
+
+<script type="module">
+import { loginUser, getCurrentUser } from "./js/auth.js";
+
+// Redirect if already logged in
+const u = getCurrentUser();
+if (u) {
+  if      (u.role === "admin")   window.location.href = "admin-dashboard.html";
+  else if (u.role === "officer") window.location.href = "officer-dashboard.html";
+  else                           window.location.href = "citizen-dashboard.html";
+}
+
+const roles = {
+  citizen: { icon:"👤", title:"Citizen Login",  desc:"Submit and track your civic complaints",  hint:"👤 <strong>Citizen:</strong> Submit complaints, track status, view history", btn:"Sign In as Citizen" },
+  officer: { icon:"👮", title:"Officer Login",   desc:"Manage and resolve assigned complaints",  hint:"👮 <strong>Officer:</strong> View complaints, update status, add comments", btn:"Sign In as Officer" },
+  admin:   { icon:"⚙️", title:"Admin Login",     desc:"Full platform management and analytics", hint:"⚙️ <strong>Admin:</strong> All data, all departments, user management", btn:"Sign In as Admin" }
+};
+
+let selectedRole = "citizen";
+
+window.setRole = function(role) {
+  selectedRole = role;
+  const cfg = roles[role];
+  document.getElementById("role-icon").textContent    = cfg.icon;
+  document.getElementById("role-heading").textContent = cfg.title;
+  document.getElementById("role-desc").textContent    = cfg.desc;
+  document.getElementById("role-hint").innerHTML      = cfg.hint;
+  document.getElementById("login-btn").innerHTML      = "🔐 " + cfg.btn;
+  ["citizen","officer","admin"].forEach(r => {
+    const btn = document.getElementById("tab-"+r);
+    btn.style.background = r === role ? "linear-gradient(135deg,#6B21A8,#8B3DC8)" : "transparent";
+    btn.style.color      = r === role ? "#fff" : "#6B5B8A";
+  });
+};
+
+window.doLogin = async function() {
+  const email = document.getElementById("login-email").value.trim();
+  const pass  = document.getElementById("login-pass").value;
+  if (!email || !pass) { showToast("Please fill all fields"); return; }
+  const btn = document.getElementById("login-btn");
+  btn.textContent = "Signing in…"; btn.disabled = true;
+  await loginUser(email, pass, selectedRole);
+  btn.textContent = "🔐 Sign In as " + selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1);
+  btn.disabled = false;
+};
+
+document.addEventListener("keydown", e => { if (e.key === "Enter") window.doLogin(); });
+</script>
+</body></html>

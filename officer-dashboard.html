@@ -37,7 +37,7 @@
   </div>
   <div class="nav-links">
     <span id="nav-user" style="color:#6B5B8A;font-size:0.93rem;font-weight:600"></span>
-    <span id="nav-role-badge" style="padding:3px 10px;border-radius:4px;font-size:0.72rem;font-weight:700;background:#ECFDF5;color:#059669;text-transform:uppercase;letter-spacing:0.08em">👮 Officer</span>
+    <span style="padding:3px 10px;border-radius:4px;font-size:0.72rem;font-weight:700;background:#ECFDF5;color:#059669;text-transform:uppercase;letter-spacing:0.08em">👮 Officer</span>
     <a href="#" onclick="doLogout()" style="color:#DC2626;font-weight:700;font-size:0.93rem">Logout</a>
   </div>
 </nav>
@@ -47,7 +47,6 @@
   <div class="sidebar-section-label">OFFICER TOOLS</div>
   <nav class="sidebar-menu">
     <a href="officer-dashboard.html" class="active">🏠 Dashboard</a>
-    <a href="admin-dashboard.html" id="sidebar-admin-link" style="display:none">⚙️ Admin Panel</a>
     <a href="transparency-dashboard.html">📊 Reports</a>
     <div style="height:1px;background:rgba(196,181,253,0.2);margin:8px 16px"></div>
     <a href="#" onclick="doLogout()" style="color:#DC2626">🚪 Logout</a>
@@ -79,12 +78,9 @@
         </select>
         <select id="filter-cat" class="form-input" style="width:auto;padding:6px 12px;font-size:0.88rem" onchange="applyFilter()">
           <option value="">All Categories</option>
-          <option value="Water">Water</option>
-          <option value="Electricity">Electricity</option>
-          <option value="Roads">Roads</option>
-          <option value="Sanitation">Sanitation</option>
-          <option value="Public Safety">Public Safety</option>
-          <option value="Transport">Transport</option>
+          <option value="Water">Water</option><option value="Electricity">Electricity</option>
+          <option value="Roads">Roads</option><option value="Sanitation">Sanitation</option>
+          <option value="Public Safety">Public Safety</option><option value="Transport">Transport</option>
         </select>
       </div>
     </div>
@@ -100,119 +96,58 @@
 <script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.06,transparent:true,opacity:.13})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
 
 <script type="module">
-import { logoutUser, getCurrentUser } from "./js/auth.js";
+import { requireAuth, logoutUser } from "./js/auth.js";
 import { getAllComplaints, updateComplaintStatus, getStatusBadge } from "./js/complaints.js";
 import { animateCounter, fmtDate } from "./js/dashboard.js";
-import { auth } from "./js/firebase.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { db } from "./js/firebase.js";
 
 window.doLogout = logoutUser;
+
 let _all = [], _activeId = null;
 
-// ── Wait for Firebase auth to resolve before doing anything ──────────────────
-// This fixes the blank dashboard on hard refresh / new tab when sessionStorage
-// is empty but the user IS logged in via Firebase.
-function waitForUser() {
-  return new Promise((resolve) => {
-    // If sessionStorage already has the user, use it immediately
-    const cached = getCurrentUser();
-    if (cached) { resolve(cached); return; }
-
-    // Otherwise wait for Firebase onAuthStateChanged
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      unsub(); // unsubscribe after first call
-      if (!firebaseUser) { resolve(null); return; }
-      try {
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (snap.exists()) {
-          const userData = snap.data();
-          sessionStorage.setItem("cr_user", JSON.stringify(userData));
-          resolve(userData);
-        } else {
-          resolve(null);
-        }
-      } catch {
-        resolve(null);
-      }
-    });
-  });
+const user = requireAuth(["officer","admin"]);
+if (user) {
+  document.getElementById("nav-user").textContent    = "👮 " + user.name;
+  document.getElementById("sidebar-user").textContent = user.name;
+  document.getElementById("welcome-title").textContent = "Officer: " + user.name.split(" ")[0];
+  loadAll();
 }
 
-(async () => {
-  const user = await waitForUser();
-
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-  if (!["officer", "admin"].includes(user.role)) {
-    showToast("Access denied for your role.");
-    setTimeout(() => window.location.href = "citizen-dashboard.html", 700);
-    return;
-  }
-
-  // Update UI with user info
-  document.getElementById("nav-user").textContent     = "👮 " + user.name;
-  document.getElementById("sidebar-user").textContent  = user.name;
-  document.getElementById("welcome-title").textContent = "Officer: " + user.name.split(" ")[0];
-
-  // Show admin badge + link if admin
-  if (user.role === "admin") {
-    document.getElementById("nav-role-badge").textContent        = "⚙️ Admin";
-    document.getElementById("nav-role-badge").style.background   = "#FEF3C7";
-    document.getElementById("nav-role-badge").style.color        = "#92400E";
-    document.getElementById("sidebar-admin-link").style.display  = "block";
-  }
-
-  await loadAll();
-})();
-
-// ── Load all complaints ───────────────────────────────────────────────────────
 window.loadAll = async function() {
-  document.getElementById("table-status").textContent    = "Loading…";
-  document.getElementById("table-status").style.display  = "block";
-  document.getElementById("table-wrap").style.display    = "none";
+  document.getElementById("table-status").textContent = "Loading…";
+  document.getElementById("table-status").style.display = "block";
+  document.getElementById("table-wrap").style.display   = "none";
   try {
     _all = await getAllComplaints();
     updateStats(_all);
     renderTable(_all);
-  } catch (err) {
-    document.getElementById("table-status").textContent = "Error loading: " + err.message;
+  } catch(err) {
+    document.getElementById("table-status").textContent = "Error: " + err.message;
     console.error(err);
   }
 };
 
 function updateStats(data) {
-  animateCounter(document.getElementById("stat-total"),     data.length, 700);
-  animateCounter(document.getElementById("stat-inprog"),    data.filter(c => c.status === "In Progress").length, 700);
-  animateCounter(document.getElementById("stat-resolved"),  data.filter(c => c.status === "Resolved").length, 700);
-  animateCounter(document.getElementById("stat-escalated"), data.filter(c => c.escalation?.level > 0).length, 700);
+  animateCounter(document.getElementById("stat-total"),    data.length, 700);
+  animateCounter(document.getElementById("stat-inprog"),   data.filter(c=>c.status==="In Progress").length, 700);
+  animateCounter(document.getElementById("stat-resolved"), data.filter(c=>c.status==="Resolved").length, 700);
+  animateCounter(document.getElementById("stat-escalated"),data.filter(c=>c.escalation?.level>0).length, 700);
 }
 
 function renderTable(data) {
   const ts = document.getElementById("table-status");
   const tw = document.getElementById("table-wrap");
-  if (!data.length) {
-    ts.textContent = "No complaints found.";
-    ts.style.display = "block";
-    tw.style.display = "none";
-    return;
-  }
-  ts.style.display = "none";
-  tw.style.display = "block";
+  if (!data.length) { ts.textContent="No complaints found"; ts.style.display="block"; tw.style.display="none"; return; }
+  ts.style.display="none"; tw.style.display="block";
   document.getElementById("officer-tbody").innerHTML = data.map(c => `
     <tr>
       <td><code style="color:#6B21A8;font-size:0.8rem">${c.id}</code></td>
       <td style="font-weight:600;color:#1A0A2E">${c.citizenName}</td>
-      <td>${c.title}</td>
-      <td>${c.category}</td>
+      <td>${c.title}</td><td>${c.category}</td>
       <td><span class="badge ${getStatusBadge(c.status)}">${c.status}</span></td>
       <td style="color:#9585B0;font-size:0.88rem">${fmtDate(c.createdAt)}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
         <select class="form-input" style="padding:4px 8px;font-size:0.82rem;width:auto"
-          onchange="quickStatus('${c.id}', this)">
+          onchange="quickStatus('${c.id}',this)">
           <option value="">Update…</option>
           <option value="Under Review">Under Review</option>
           <option value="In Progress">In Progress</option>
@@ -227,30 +162,26 @@ function renderTable(data) {
 window.applyFilter = function() {
   const fs = document.getElementById("filter-status").value;
   const fc = document.getElementById("filter-cat").value;
-  renderTable(_all.filter(c => (!fs || c.status === fs) && (!fc || c.category === fc)));
+  const filtered = _all.filter(c => (!fs||c.status===fs) && (!fc||c.category===fc));
+  renderTable(filtered);
 };
 
-// FIX: reset select value immediately to prevent double-submit
 window.quickStatus = async function(id, sel) {
   if (!sel.value) return;
-  const newStatus = sel.value;
-  sel.value    = "";   // reset immediately
   sel.disabled = true;
   try {
-    await updateComplaintStatus(id, newStatus, null);
-    showToast("Status updated → " + newStatus);
+    await updateComplaintStatus(id, sel.value, null);
+    showToast("Status updated → " + sel.value);
     await loadAll();
-  } catch (err) {
-    showToast("Error: " + err.message);
-  }
+  } catch(err) { showToast("Error: "+err.message); }
   sel.disabled = false;
 };
 
 window.openCommentModal = function(id) {
   _activeId = id;
-  document.getElementById("modal-id").textContent    = id;
-  document.getElementById("modal-comment").value     = "";
-  document.getElementById("modal-status").value      = "";
+  document.getElementById("modal-id").textContent = id;
+  document.getElementById("modal-comment").value  = "";
+  document.getElementById("modal-status").value   = "";
   document.getElementById("comment-modal").classList.add("open");
 };
 window.closeModal = function() {
@@ -262,16 +193,14 @@ window.saveModal = async function() {
   const comment = document.getElementById("modal-comment").value.trim();
   if (!status && !comment) { showToast("Enter a status update or comment"); return; }
   const btn = document.getElementById("modal-save-btn");
-  btn.textContent = "Saving…"; btn.disabled = true;
+  btn.textContent="Saving…"; btn.disabled=true;
   try {
-    await updateComplaintStatus(_activeId, status || null, comment || null);
+    await updateComplaintStatus(_activeId, status||null, comment||null);
     showToast("Updated successfully!");
     closeModal();
     await loadAll();
-  } catch (err) {
-    showToast("Error: " + err.message);
-  }
-  btn.textContent = "Save Update"; btn.disabled = false;
+  } catch(err) { showToast("Error: "+err.message); }
+  btn.textContent="Save Update"; btn.disabled=false;
 };
 </script>
 </body></html>

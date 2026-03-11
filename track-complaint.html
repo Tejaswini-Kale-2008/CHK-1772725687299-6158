@@ -13,31 +13,12 @@
     <a href="index.html" class="nav-logo">⚖️ CivicResolve</a>
   </div>
   <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="submit-complaint.html">Submit</a>
+    <a href="index.html">Home</a><a href="submit-complaint.html">Submit</a>
     <a href="track-complaint.html">Track</a>
-    <a href="transparency-dashboard.html">Transparency</a>
     <a href="login.html" class="btn btn-blue btn-sm" style="color:#fff" id="nav-cta">Login</a>
   </div>
 </nav>
-<div id="sidebar-overlay"></div>
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>⚖️ CivicResolve</h2>
-    <p>Citizen Portal</p>
-  </div>
-  <div class="sidebar-section-label">NAVIGATION</div>
-  <nav class="sidebar-menu">
-    <a href="index.html">🏠 Home</a>
-    <a href="submit-complaint.html">📝 Submit Complaint</a>
-    <a href="track-complaint.html" class="active">🔍 Track Complaint</a>
-    <a href="transparency-dashboard.html">📊 Public Reports</a>
-    <div style="height:1px;background:rgba(196,181,253,0.2);margin:8px 16px"></div>
-    <a href="login.html">🔐 Login</a>
-  </nav>
-</aside>
 <main style="position:relative;z-index:1;padding:100px 40px 60px;max-width:800px;margin:0 auto">
-  <a href="transparency-dashboard.html" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:24px;padding:9px 20px;border-radius:9px;background:rgba(255,255,255,0.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:2px solid rgba(107,33,168,0.4);color:#6B21A8;font-family:'Source Sans 3',sans-serif;font-size:0.9rem;font-weight:700;text-decoration:none;letter-spacing:0.02em;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),background 0.2s" onmouseover="this.style.transform='translateY(-3px) scale(1.02)';this.style.background='#F3EEFF'" onmouseout="this.style.transform='';this.style.background='rgba(255,255,255,0.55)'">← Back</a>
   <h1 style="font-family:'Merriweather',serif;font-size:2rem;font-weight:900;color:#1A0A2E;margin-bottom:6px">Track Complaint</h1>
   <p style="color:#6B5B8A;margin-bottom:32px">Enter your Complaint ID to view real-time status from Firestore</p>
   <div class="glass" style="padding:28px;margin-bottom:28px">
@@ -49,7 +30,7 @@
   <div id="result-area"></div>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(500);for(var i=0;i<500;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.065,transparent:true,opacity:.15})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
+<script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.065,transparent:true,opacity:.15})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
 <script type="module">
 import { getCurrentUser } from "./js/auth.js";
 import { getComplaintById, getStatusBadge } from "./js/complaints.js";

@@ -124,146 +124,64 @@
   </div>
 </main>
 
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="js/firebase.js"></script>
+<script src="js/complaints.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/charts.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="js/map.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-<!-- Three.js background particles -->
 <script>
-(function(){
-  var scene = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  var renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
+  addDemoComplaints();
+
+  // Stats with resolution rate
+  const complaints = getAllComplaints();
+  const total    = complaints.length || 0;
+  const resolved = complaints.filter(c => c.status === "Resolved").length;
+  const rate     = total > 0 ? Math.round((resolved / total) * 100) : 0;
+
+  function animateCounter(id, val, duration, suffix) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let start = 0;
+    const step = val / (duration / 16);
+    const interval = setInterval(() => {
+      start += step;
+      if (start >= val) {
+        el.textContent = Math.round(val) + (suffix||"");
+        clearInterval(interval);
+      } else {
+        el.textContent = Math.round(start) + (suffix||"");
+      }
+    }, 16);
+  }
+
+  animateCounter("stat-total", total || 25, 1000);
+  animateCounter("stat-resolved", resolved || 18, 1000);
+  animateCounter("stat-rate", rate || 72, 1000, "%");
+  animateCounter("stat-departments", 6, 1000);
+
+  // Charts
+  initCategoryPie("cat-pie");
+  initDeptBar("dept-bar");
+  initMonthlyLine("trend-line");
+
+  // Map
+  setTimeout(() => initMap("map"), 300);
+
+  // Background
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.position.z = 5;
-  var geo = new THREE.BufferGeometry();
-  var pos = new Float32Array(600);
-  for (var i = 0; i < 600; i++) pos[i] = (Math.random()-0.5)*18;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(600);
+  for (let i = 0; i < 600; i++) pos[i] = (Math.random()-0.5)*18;
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  var pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x8B3DC8, size: 0.06, transparent: true, opacity: 0.2 }));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x8B3DC8, size: 0.06, transparent: true, opacity: 0.202 }));
   scene.add(pts);
   (function loop(){ requestAnimationFrame(loop); pts.rotation.y += 0.0004; renderer.render(scene, camera); })();
-  window.addEventListener('resize', function(){
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-})();
-</script>
-
-<!-- Main data + charts as ES module with proper async/await -->
-<script type="module">
-import { getAllComplaints, addDemoComplaints } from "./js/complaints.js";
-
-function animateCounter(id, val, duration, suffix) {
-  const el = document.getElementById(id); if (!el) return;
-  let start = 0;
-  const step = val / (duration / 16);
-  const iv = setInterval(() => {
-    start += step;
-    if (start >= val) { el.textContent = Math.round(val) + (suffix||""); clearInterval(iv); }
-    else              { el.textContent = Math.round(start) + (suffix||""); }
-  }, 16);
-}
-
-function drawCategoryPie(complaints) {
-  const ctx = document.getElementById("cat-pie"); if (!ctx) return;
-  const cats = ["Water","Electricity","Roads","Sanitation","Public Safety","Transport"];
-  const data = cats.map(c => complaints.filter(x => x.category === c).length);
-  new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: cats,
-      datasets: [{ data: data.some(v=>v>0) ? data : [10,8,12,5,7,6],
-        backgroundColor: ["#6B21A8","#D4A017","#4A0E8F","#059669","#8B3DC8","#C4B5FD"],
-        borderWidth: 3, borderColor: "#fff" }]
-    },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position:"right", labels:{ color:"#6B5B8A", font:{size:12}, padding:14 } } } }
-  });
-}
-
-function drawDeptBar() {
-  const ctx = document.getElementById("dept-bar"); if (!ctx) return;
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: ["Water Dept","Electricity","Public Works","Sanitation","Police","Transport"],
-      datasets: [{ label: "Resolution Rate %", data: [75,82,60,70,88,65],
-        backgroundColor: ["#6B21A8","#8B3DC8","#4A0E8F","#C4B5FD","#D4A017","#EDE9FE"],
-        borderRadius: 6, borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, indexAxis:"y",
-      plugins: { legend:{ display:false } },
-      scales: { x:{ ticks:{color:"#9585B0"}, grid:{color:"rgba(107,33,168,0.07)"} },
-                y:{ ticks:{color:"#9585B0"}, grid:{display:false} } } }
-  });
-}
-
-function drawMonthlyLine() {
-  const ctx = document.getElementById("trend-line"); if (!ctx) return;
-  new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-      datasets: [
-        { label:"Submitted", data:[12,18,15,22,19,25,30,28,24,32,29,35],
-          borderColor:"#6B21A8", backgroundColor:"rgba(107,33,168,0.08)", tension:0.4, fill:true, pointRadius:5, pointBackgroundColor:"#6B21A8" },
-        { label:"Resolved", data:[8,12,10,16,15,20,24,22,20,26,25,30],
-          borderColor:"#D4A017", backgroundColor:"rgba(212,160,23,0.07)", tension:0.4, fill:true, pointRadius:5, pointBackgroundColor:"#D4A017" }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{ labels:{color:"#6B5B8A", font:{size:13}} } },
-      scales: { x:{ticks:{color:"#9585B0"}, grid:{color:"rgba(107,33,168,0.07)"}},
-                y:{ticks:{color:"#9585B0"}, grid:{color:"rgba(107,33,168,0.07)"}} } }
-  });
-}
-
-function drawMap(complaints) {
-  const mapEl = document.getElementById("map"); if (!mapEl) return;
-  const map = L.map("map").setView([28.6139, 77.2090], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:19 }).addTo(map);
-  const demoLocs = [
-    { lat:28.6139, lng:77.2090, title:"Water pipe broken",     category:"Water",         status:"Submitted"   },
-    { lat:28.6200, lng:77.2150, title:"Street light out",      category:"Electricity",   status:"In Progress" },
-    { lat:28.6100, lng:77.2050, title:"Road pothole",          category:"Roads",         status:"Resolved"    },
-    { lat:28.6250, lng:77.2200, title:"Garbage not collected", category:"Sanitation",    status:"Submitted"   },
-    { lat:28.6080, lng:77.2180, title:"Suspicious activity",   category:"Public Safety", status:"In Progress" },
-    { lat:28.6300, lng:77.2100, title:"Bus disrupted",         category:"Transport",     status:"Submitted"   }
-  ];
-  const colors = { Water:"#6B21A8", Electricity:"#D4A017", Roads:"#4A0E8F", Sanitation:"#059669", "Public Safety":"#DC2626", Transport:"#8B3DC8" };
-  demoLocs.forEach(loc => {
-    L.circleMarker([loc.lat, loc.lng], { radius:9, fillColor:colors[loc.category]||"#6B5B8A", color:"#fff", weight:2.5, fillOpacity:0.9 })
-      .addTo(map)
-      .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><strong>${loc.title}</strong><br><span style="color:#6B5B8A;font-size:0.82rem">${loc.category}</span><br>Status: <b>${loc.status}</b></div>`);
-  });
-}
-
-async function init() {
-  try {
-    await addDemoComplaints();
-    const complaints = await getAllComplaints();
-
-    const total    = complaints.length;
-    const resolved = complaints.filter(c => c.status === "Resolved").length;
-    const rate     = total > 0 ? Math.round((resolved / total) * 100) : 0;
-
-    animateCounter("stat-total",       total,    1000);
-    animateCounter("stat-resolved",    resolved, 1000);
-    animateCounter("stat-rate",        rate,     1000, "%");
-    animateCounter("stat-departments", 6,        1000);
-
-    drawCategoryPie(complaints);
-    drawDeptBar();
-    drawMonthlyLine();
-    setTimeout(() => drawMap(complaints), 400);
-
-  } catch(err) {
-    console.error("Transparency init error:", err);
-  }
-}
-
-init();
-</script>
-</body></html>
+  window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer

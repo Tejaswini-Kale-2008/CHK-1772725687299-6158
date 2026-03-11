@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isOfficer() { return isSignedIn() && getRole() == 'officer'; }
+    function isAdmin()   { return isSignedIn() && getRole() == 'admin';   }
+    function isCitizen() { return isSignedIn() && getRole() == 'citizen'; }
+    function isStaff()   { return isOfficer() || isAdmin(); }
+
+    // ── /users/{uid} ─────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read:   if request.auth.uid == uid || isAdmin();
+      allow create: if request.auth.uid == uid
+                    && request.resource.data.role in ['citizen','officer','admin'];
+      allow update: if (request.auth.uid == uid
+                        && !request.resource.data.diff(resource.data)
+                             .affectedKeys().hasAny(['role','uid']))
+                    || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── /complaints/{id} ─────────────────────────────────────────────
+    match /complaints/{complaintId} {
+      // PUBLIC read by custom complaint id — for track-complaint.html (no login needed)
+      // Officers and admins can read all. Citizens read only their own.
+      allow read: if true;   // public tracking is intentional for this platform
+
+      // Any signed-in user can create a complaint
+      allow create: if isSignedIn()
+                    && request.resource.data.status == 'Submitted';
+
+      // Only officers/admins can update (status, comments)
+      allow update: if isStaff();
+
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

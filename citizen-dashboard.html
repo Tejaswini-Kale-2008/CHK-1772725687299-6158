@@ -61,68 +61,38 @@
 <script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.06,transparent:true,opacity:.13})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
 
 <script type="module">
-import { logoutUser, getCurrentUser } from "./js/auth.js";
+import { requireAuth, logoutUser } from "./js/auth.js";
 import { getComplaintsByCitizen, getStatusBadge } from "./js/complaints.js";
 import { animateCounter, fmtDate } from "./js/dashboard.js";
-import { auth, db } from "./js/firebase.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 window.doLogout = logoutUser;
 
-// ── Wait for Firebase auth to resolve — fixes blank dashboard on hard refresh ─
-function waitForUser() {
-  return new Promise((resolve) => {
-    const cached = getCurrentUser();
-    if (cached) { resolve(cached); return; }
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      unsub();
-      if (!firebaseUser) { resolve(null); return; }
-      try {
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (snap.exists()) {
-          const userData = snap.data();
-          sessionStorage.setItem("cr_user", JSON.stringify(userData));
-          resolve(userData);
-        } else { resolve(null); }
-      } catch { resolve(null); }
-    });
-  });
-}
-
-(async () => {
-  const user = await waitForUser();
-
-  if (!user) { window.location.href = "login.html"; return; }
-  if (user.role !== "citizen") {
-    window.location.href = user.role === "admin" ? "admin-dashboard.html" : "officer-dashboard.html";
-    return;
-  }
-
-  document.getElementById("nav-user").textContent     = "👤 " + user.name;
-  document.getElementById("sidebar-user").textContent  = user.name;
+const user = requireAuth(["citizen"]);
+if (user) {
+  document.getElementById("nav-user").textContent    = "👤 " + user.name;
+  document.getElementById("sidebar-user").textContent = user.name;
   document.getElementById("welcome-title").textContent = "Welcome, " + user.name.split(" ")[0] + "!";
   document.getElementById("welcome-sub").textContent   = user.email;
 
-  const statusEl = document.getElementById("table-status");
-  const wrapEl   = document.getElementById("table-wrap");
-
   try {
-    const mine      = await getComplaintsByCitizen(user.uid);
+    const mine = await getComplaintsByCitizen(user.uid);
     const resolved  = mine.filter(c => c.status === "Resolved").length;
     const pending   = mine.filter(c => c.status !== "Resolved").length;
     const escalated = mine.filter(c => c.escalation?.level > 0).length;
 
-    animateCounter(document.getElementById("stat-total"),     mine.length, 1000);
-    animateCounter(document.getElementById("stat-pending"),   pending,     1000);
-    animateCounter(document.getElementById("stat-resolved"),  resolved,    1000);
-    animateCounter(document.getElementById("stat-escalated"), escalated,   1000);
+    animateCounter(document.getElementById("stat-total"),    mine.length, 1000);
+    animateCounter(document.getElementById("stat-pending"),  pending,     1000);
+    animateCounter(document.getElementById("stat-resolved"), resolved,    1000);
+    animateCounter(document.getElementById("stat-escalated"),escalated,   1000);
+
+    const status = document.getElementById("table-status");
+    const wrap   = document.getElementById("table-wrap");
 
     if (!mine.length) {
-      statusEl.innerHTML = 'No complaints yet. <a href="submit-complaint.html" style="color:#6B21A8">Submit one →</a>';
+      status.innerHTML = 'No complaints yet. <a href="submit-complaint.html" style="color:#6B21A8">Submit one →</a>';
     } else {
-      statusEl.style.display = "none";
-      wrapEl.style.display   = "block";
+      status.style.display = "none";
+      wrap.style.display   = "block";
       document.getElementById("my-complaints-tbody").innerHTML = mine.map(c => `
         <tr>
           <td><code style="color:#6B21A8;font-size:0.8rem">${c.id}</code></td>
@@ -134,20 +104,9 @@ function waitForUser() {
         </tr>`).join("");
     }
   } catch (err) {
-    const indexMatch = err.message?.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-    if (indexMatch) {
-      statusEl.innerHTML = `<div style="color:#DC2626;padding:10px">
-        <strong>Firestore index required.</strong><br>
-        <a href="${indexMatch[0]}" target="_blank" rel="noopener" style="color:#6B21A8;word-break:break-all">
-          👉 Click here to create the required index
-        </a>
-        <p style="color:#9585B0;font-size:0.85rem;margin-top:8px">After creating (~1 min), refresh this page.</p>
-      </div>`;
-    } else {
-      statusEl.textContent = "Error loading complaints: " + err.message;
-    }
+    document.getElementById("table-status").textContent = "Error loading complaints: " + err.message;
     console.error(err);
   }
-})();
+}
 </script>
 </body></html>

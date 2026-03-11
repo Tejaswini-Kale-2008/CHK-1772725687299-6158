@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Register – CivicResolve</title>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="js/ui.js"></script>
+</head><body>
+<div id="loading-screen"><div class="brand">⚖️ CivicResolve</div><div class="ring"></div><p>Loading…</p></div>
+<canvas id="bg-canvas"></canvas><div id="toast"></div>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 16px;position:relative;z-index:1">
+  <a href="index.html" class="nav-logo" style="margin-bottom:34px;font-size:1.35rem;text-decoration:none">⚖️ CivicResolve <span class="logo-badge">GOV</span></a>
+
+  <div class="glass" style="padding:38px;width:100%;max-width:420px;border-top:4px solid #6B21A8">
+    <h2 style="font-family:'Merriweather',serif;font-size:1.5rem;font-weight:900;color:#1A0A2E;margin-bottom:4px">Create Account</h2>
+    <p style="color:#6B5B8A;font-size:0.93rem;margin-bottom:28px">Register with your role to access the platform</p>
+
+    <div class="form-group"><label class="form-label">Full Name *</label>
+      <input type="text" id="reg-name" class="form-input" placeholder="Your full name"/></div>
+    <div class="form-group"><label class="form-label">Email Address *</label>
+      <input type="email" id="reg-email" class="form-input" placeholder="you@example.com"/></div>
+    <div class="form-group"><label class="form-label">Password *</label>
+      <input type="password" id="reg-pass" class="form-input" placeholder="Min 6 characters"/></div>
+    <div class="form-group">
+      <label class="form-label">Account Role *</label>
+      <select id="reg-role" class="form-input">
+        <option value="citizen">👤 Citizen — Submit & track complaints</option>
+        <option value="officer">👮 Officer — Manage & resolve complaints</option>
+        <option value="admin">⚙️ Admin — Full platform access</option>
+      </select>
+    </div>
+
+    <button id="reg-btn" class="btn btn-blue" style="width:100%;justify-content:center;margin-top:4px" onclick="doRegister()">✅ Create Account</button>
+    <div class="info-box" style="margin-top:18px;font-size:0.86rem">
+      🔒 Your account is secured with Firebase Authentication. Password is never stored in plain text.
+    </div>
+    <div style="margin-top:18px;text-align:center;font-size:0.91rem;color:#6B5B8A">
+      Already registered? <a href="login.html" style="color:#6B21A8;font-weight:700">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.06,transparent:true,opacity:.15})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
+
+<script type="module">
+import { registerUser } from "./js/auth.js";
+
+window.doRegister = async function() {
+  const name  = document.getElementById("reg-name").value.trim();
+  const email = document.getElementById("reg-email").value.trim();
+  const pass  = document.getElementById("reg-pass").value;
+  const role  = document.getElementById("reg-role").value;
+  const btn   = document.getElementById("reg-btn");
+  btn.textContent = "Creating…"; btn.disabled = true;
+  await registerUser(name, email, pass, role);
+  btn.textContent = "✅ Create Account"; btn.disabled = false;
+};
+</script>
+</body></html>

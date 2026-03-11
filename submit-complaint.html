@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Submit Complaint – CivicResolve</title>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="js/ui.js"></script>
+</head><body>
+<div id="loading-screen"><div class="brand">⚖️ CivicResolve</div><div class="ring"></div><p>Loading…</p></div>
+<canvas id="bg-canvas"></canvas><div id="toast"></div>
+<button id="help-btn" onclick="showToast('Help: help@civicresolve.gov')">?</button>
+
+<nav class="navbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="sidebar-toggle">☰</button>
+    <a href="citizen-dashboard.html" class="nav-logo" data-no-tr>⚖️ CivicResolve</a>
+  </div>
+  <div class="nav-links">
+    <span id="nav-user" style="color:#6B5B8A;font-size:0.93rem;font-weight:600"></span>
+    <a href="#" onclick="doLogout()" style="color:#DC2626;font-weight:700;font-size:0.93rem">Logout</a>
+  </div>
+</nav>
+<div id="sidebar-overlay"></div>
+<aside class="sidebar">
+  <div class="sidebar-header"><h2>⚖️ CivicResolve</h2><p id="sidebar-user">Portal</p></div>
+  <div class="sidebar-section-label">NAVIGATION</div>
+  <nav class="sidebar-menu">
+    <a href="citizen-dashboard.html">🏠 Dashboard</a>
+    <a href="submit-complaint.html" class="active">📝 Submit Complaint</a>
+    <a href="track-complaint.html">🔍 Track</a>
+    <a href="transparency-dashboard.html">📊 Reports</a>
+    <div style="height:1px;background:rgba(196,181,253,0.2);margin:8px 16px"></div>
+    <a href="#" onclick="doLogout()" style="color:#DC2626">🚪 Logout</a>
+  </nav>
+</aside>
+
+<main class="page-content" style="padding-top:90px">
+  <div class="page-header">
+    <div><h1>Submit a Complaint</h1><p>Fill the form below. You'll get a unique Complaint ID instantly.</p></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start">
+    <div class="glass" style="padding:30px">
+      <div class="form-group"><label class="form-label">Complaint Title *</label>
+        <input type="text" id="f-title" class="form-input" placeholder="e.g. Water pipe broken near park"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group"><label class="form-label">Category *</label>
+          <select id="f-category" class="form-input" onchange="updateDeptPreview()">
+            <option value="">Select category…</option>
+            <option value="Water">💧 Water</option>
+            <option value="Electricity">⚡ Electricity</option>
+            <option value="Roads">🛣️ Roads</option>
+            <option value="Sanitation">🗑️ Sanitation</option>
+            <option value="Public Safety">🛡️ Public Safety</option>
+            <option value="Transport">🚌 Transport</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Location *</label>
+          <input type="text" id="f-location" class="form-input" placeholder="Area / street / sector"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Description *</label>
+        <textarea id="f-desc" class="form-input" rows="5" placeholder="Describe the issue — what happened, since when, how severe…"></textarea></div>
+      <div id="dept-preview" style="display:none;margin-bottom:18px" class="info-box"></div>
+      <button id="submit-btn" class="btn btn-blue" onclick="doSubmit()" style="width:100%;justify-content:center;font-size:1.05rem;padding:14px">📨 Submit Complaint</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="glass" style="padding:22px">
+        <h3 class="section-title">📋 How it works</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:0.9rem;color:#6B5B8A">
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#6B21A8;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">1</span><span>Submit — get a Complaint ID instantly</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#6B21A8;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">2</span><span>Auto-assigned to the correct department</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#6B21A8;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">3</span><span>Track real-time progress with 5-step tracker</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#D4A017;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">4</span><span>Auto-escalated if not resolved within 24h</span></div>
+        </div>
+      </div>
+      <div class="glass" style="padding:22px">
+        <h3 class="section-title">👤 Filing As</h3>
+        <div id="filer-info" style="font-size:0.93rem;color:#6B5B8A">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="success-panel" style="display:none;margin-top:22px" class="glass">
+    <div style="padding:36px;text-align:center">
+      <div style="font-size:3.5rem;margin-bottom:14px">✅</div>
+      <h2 style="font-family:'Merriweather',serif;font-size:1.4rem;font-weight:900;color:#1A0A2E;margin-bottom:8px">Complaint Submitted!</h2>
+      <p style="color:#6B5B8A;margin-bottom:18px">Your Complaint ID (save this):</p>
+      <div id="new-complaint-id" style="font-family:monospace;font-size:1.6rem;font-weight:900;color:#6B21A8;background:#EDE9FE;padding:12px 24px;border-radius:8px;display:inline-block;margin-bottom:22px;letter-spacing:0.05em"></div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="track-complaint.html" id="track-link" class="btn btn-blue">🔍 Track Complaint</a>
+        <button class="btn btn-outline" onclick="resetForm()">+ Submit Another</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>(function(){var s=new THREE.Scene(),c=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000),r=new THREE.WebGLRenderer({canvas:document.getElementById('bg-canvas'),alpha:true});r.setSize(innerWidth,innerHeight);c.position.z=5;var g=new THREE.BufferGeometry(),p=new Float32Array(600);for(var i=0;i<600;i++)p[i]=(Math.random()-.5)*20;g.setAttribute('position',new THREE.BufferAttribute(p,3));s.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8B3DC8,size:.06,transparent:true,opacity:.13})));(function l(){requestAnimationFrame(l);r.render(s,c);})();})();</script>
+
+<script type="module">
+import { requireAuth, logoutUser, getCurrentUser } from "./js/auth.js";
+import { saveComplaint, getDepartmentByCategory } from "./js/complaints.js";
+
+window.doLogout = logoutUser;
+
+const user = requireAuth(["citizen","officer","admin"]);
+if (user) {
+  document.getElementById("nav-user").textContent    = "👤 " + user.name;
+  document.getElementById("sidebar-user").textContent = user.name;
+  document.getElementById("filer-info").innerHTML =
+    `<div style="font-weight:700;color:#1A0A2E;margin-bottom:4px">${user.name}</div>
+     <div>${user.email}</div>
+     <div style="margin-top:6px"><span style="padding:2px 10px;border-radius:4px;font-size:0.78rem;font-weight:700;background:#EDE9FE;color:#6B21A8;text-transform:uppercase">${user.role}</span></div>`;
+}
+
+window.updateDeptPreview = function() {
+  const cat = document.getElementById("f-category").value;
+  const box = document.getElementById("dept-preview");
+  if (cat) { box.style.display="block"; box.innerHTML=`🏢 Will be assigned to: <strong>${getDepartmentByCategory(cat)}</strong>`; }
+  else box.style.display="none";
+};
+
+window.doSubmit = async function() {
+  const title    = document.getElementById("f-title").value.trim();
+  const category = document.getElementById("f-category").value;
+  const location = document.getElementById("f-location").value.trim();
+  const desc     = document.getElementById("f-desc").value.trim();
+  if (!title || !category || !location || !desc) { showToast("Please fill all required fields"); return; }
+
+  const btn = document.getElementById("submit-btn");
+  btn.textContent = "Submitting…"; btn.disabled = true;
+
+  try {
+    const u  = getCurrentUser();
+    const id = await saveComplaint({ title, category, location, description: desc,
+      citizenName: u?.name, citizenEmail: u?.email, citizenId: u?.uid });
+    document.getElementById("new-complaint-id").textContent = id;
+    document.getElementById("track-link").href = `track-complaint.html?id=${id}`;
+    document.getElementById("success-panel").style.display = "block";
+    document.getElementById("success-panel").scrollIntoView({ behavior:"smooth" });
+    showToast("Complaint submitted! ID: " + id);
+  } catch (err) {
+    showToast("Error submitting: " + err.message);
+    console.error(err);
+  }
+  btn.textContent = "📨 Submit Complaint"; btn.disabled = false;
+};
+
+window.resetForm = function() {
+  ["f-title","f-location","f-desc"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("f-category").value = "";
+  document.getElementById("success-panel").style.display = "none";
+  document.getElementById("dept-preview").style.display  = "none";
+};
+</script>
+</body></html>

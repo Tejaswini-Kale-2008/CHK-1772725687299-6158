@@ -17,12 +17,12 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebas
 
 // ─── PASTE YOUR FIREBASE CONFIG HERE ───────────────────────────────────────
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyC1VD2qXc7QEh2-JSF7UVGp3cB72F25OLE",
+  authDomain:        "hackathon-3c2bf.firebaseapp.com",
+  projectId:         "hackathon-3c2bf",
+  storageBucket:     "hackathon-3c2bf.firebasestorage.app",
+  messagingSenderId: "980697145301",
+  appId:             "1:980697145301:web:699910ef5e74827108e75c"
 };
 // ───────────────────────────────────────────────────────────────────────────
 
