@@ -28,8 +28,6 @@ A full-stack government civic complaint management platform built with **Firebas
 2. Click **"Create database"**
 3. Choose **"Start in test mode"** → Next → Select a region (e.g. `asia-south1`) → **Enable**
 
-> ⚠️ Test mode allows all reads/writes for 30 days. Deploy the security rules (Step 6) before going live.
-
 ---
 
 ### Step 4 — Get Your Firebase Config
@@ -226,7 +224,6 @@ After login, the user profile is cached in `sessionStorage` for fast UI access (
 - Firebase docs: [https://firebase.google.com/docs](https://firebase.google.com/docs)
 - Firestore queries: [https://firebase.google.com/docs/firestore/query-data/queries](https://firebase.google.com/docs/firestore/query-data/queries)
 - Firebase Auth: [https://firebase.google.com/docs/auth/web/start](https://firebase.google.com/docs/auth/web/start)
-
 ---
 members: 
 . Tejswini Kale
