@@ -191,7 +191,7 @@ complaints/{autoId}
 
 ---
 
-## ⚠️ Important Notes
+## Important Notes
 
 ### ES Modules Requirement
 All JS files use `import`/`export` (ES Modules). The HTML files load them with `<script type="module">`. This **requires an HTTP server** — simply opening `index.html` in a browser will fail with a CORS error.
@@ -226,8 +226,8 @@ After login, the user profile is cached in `sessionStorage` for fast UI access (
 - Firebase Auth: [https://firebase.google.com/docs/auth/web/start](https://firebase.google.com/docs/auth/web/start)
 ---
 members: 
+
 . Tejswini Kale
 . Suhani Kaldate
 . Divya Kamble
 . Priyadarshani Pathrut
-*Built with Firebase v10, Glassmorphism CSS, Three.js, Chart.js, Leaflet.js*
